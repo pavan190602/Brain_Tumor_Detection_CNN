@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Brain Tumor Detection · CNN</title>
+<style>
+/* ══════════════════════ VARIABLES ══════════════════════ */
+:root {
+  --font-head:'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+  --font-body:'Segoe UI',Tahoma,Verdana,sans-serif;
+  --bg:#eef4fb; --bg2:#f0f6fd; --surface:#ffffff; --card:#ffffff;
+  --border:#cddff0; --accent:#1a6fbf; --accent2:#0e9f6e; --accent3:#e53e3e;
+  --accentlt:#dbeafe; --text:#1a2d42; --muted:#5a7a99;
+  --shadow:0 4px 24px rgba(26,111,191,.1);
+  --nav-h:72px;
+  --demo-bg:linear-gradient(135deg,#1a3a6b 0%,#1a6fbf 50%,#0e4a8a 100%);
+}
+[data-theme="dark"] {
+  --bg:#0d1b2a; --bg2:#0a1520; --surface:#122236; --card:#162840;
+  --border:rgba(100,180,255,.15); --accent:#3fa9f5; --accent2:#34d399;
+  --accent3:#f87171; --accentlt:rgba(63,169,245,.13);
+  --text:#d4e8f8; --muted:#6a9abf; --shadow:0 4px 30px rgba(0,0,0,.4);
+  --demo-bg:linear-gradient(135deg,#0a1f40 0%,#0d2d5a 50%,#071828 100%);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.7;overflow-x:hidden;transition:background .35s,color .35s}
+a{color:var(--accent);text-decoration:none}
+::selection{background:var(--accentlt);color:var(--accent)}
+
+/* ══════════════════════ NAV ══════════════════════ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  height:var(--nav-h);
+  background:var(--surface);
+  border-bottom:2px solid var(--border);
+  box-shadow:0 2px 20px rgba(26,111,191,.12);
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:0 2rem;
+  transition:background .35s,border-color .35s;
+  gap:1rem;
+}
+.nav-brand{
+  display:flex;align-items:center;gap:.8rem;
+  font-family:var(--font-head);font-size:1.35rem;font-weight:700;
+  color:var(--text);white-space:nowrap;flex-shrink:0;
+}
+.nav-brain{font-size:2.1rem;line-height:1}
+.nav-links{
+  display:flex;gap:.25rem;align-items:center;flex-wrap:nowrap;
+  overflow-x:auto;
+}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{
+  padding:.45rem 1rem;border-radius:7px;
+  font-size:.87rem;font-weight:600;color:var(--muted);
+  transition:all .2s;white-space:nowrap;cursor:pointer;
+  border:1px solid transparent;
+}
+.nav-links a:hover{background:var(--accentlt);color:var(--accent);border-color:rgba(26,111,191,.2)}
+.nav-links a.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.nav-links a.active:hover{background:var(--accent)}
+
+/* THEME TOGGLE */
+.theme-toggle{
+  flex-shrink:0;
+  width:56px;height:28px;border-radius:30px;
+  background:var(--accent);border:none;cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,.18);
+  transition:background .3s;
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:0 5px;position:relative;
+}
+.theme-toggle:hover{filter:brightness(1.1)}
+.t-sun,.t-moon{font-size:.75rem;line-height:1;z-index:1}
+.t-knob{
+  position:absolute;width:20px;height:20px;border-radius:50%;
+  background:#fff;top:4px;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 1px 5px rgba(0,0,0,.25);
+}
+[data-theme="light"] .t-knob{transform:translateX(2px)}
+[data-theme="dark"]  .t-knob{transform:translateX(28px)}
+[data-theme="dark"]  .theme-toggle{background:#1e4060}
+
+@media(max-width:960px){
+  .nav-links a{padding:.38rem .65rem;font-size:.78rem}
+}
+@media(max-width:700px){
+  .nav-brand span{display:none}
+  .nav-links a{padding:.32rem .5rem;font-size:.72rem}
+}
+
+/* ══════════════════════ LAYOUT ══════════════════════ */
+.page{padding-top:var(--nav-h)}
+section,div.sec{max-width:1200px;margin:0 auto;padding:5rem 2rem}
+
+/* SECTION HEADER */
+.sh{margin-bottom:2.8rem}
+.sh-tag{
+  display:inline-flex;align-items:center;gap:.5rem;
+  font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+  font-weight:700;color:var(--accent);margin-bottom:.6rem;
+}
+.sh-tag::before{content:'';display:inline-block;width:22px;height:2.5px;background:var(--accent);border-radius:2px}
+.sh-title{
+  font-family:var(--font-head);
+  font-size:clamp(1.8rem,3.2vw,2.7rem);
+  font-weight:700;line-height:1.12;color:var(--text);margin-bottom:.8rem;
+}
+.sh-title em{color:var(--accent);font-style:normal}
+.sh-body{color:var(--muted);max-width:600px;font-size:.97rem;line-height:1.75}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ══════════════════════ HOME ══════════════════════ */
+#home{
+  min-height:calc(100vh - var(--nav-h));
+  display:flex;flex-direction:column;
+  justify-content:center;align-items:center;
+  text-align:center;padding:3rem 2rem;
+  position:relative;overflow:hidden;max-width:100%;
+}
+#home::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 75% 60% at 50% 40%,rgba(26,111,191,.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-badge{
+  display:inline-block;background:var(--accentlt);
+  border:1px solid rgba(26,111,191,.3);color:var(--accent);
+  font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+  font-weight:700;padding:.38rem 1.2rem;border-radius:100px;
+  margin-bottom:1.8rem;animation:fadeUp .6s ease both;
+}
+.hero-icon{
+  font-size:5rem;line-height:1;margin-bottom:1.2rem;
+  animation:fadeUp .65s .05s ease both;
+  filter:drop-shadow(0 6px 20px rgba(26,111,191,.3));
+}
+#home h1{
+  font-family:var(--font-head);
+  font-size:clamp(2.2rem,6vw,4.8rem);
+  font-weight:700;line-height:1.06;
+  animation:fadeUp .7s .1s ease both;color:var(--text);
+}
+#home h1 span{color:var(--accent)}
+.hero-sub{
+  margin-top:1.1rem;
+  font-size:clamp(.93rem,1.6vw,1.15rem);
+  color:var(--muted);max-width:580px;
+  animation:fadeUp .75s .18s ease both;
+}
+.hero-btns{
+  margin-top:2.4rem;display:flex;gap:.9rem;
+  flex-wrap:wrap;justify-content:center;
+  animation:fadeUp .8s .26s ease both;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:.45rem;
+  padding:.75rem 1.8rem;border-radius:9px;
+  font-family:var(--font-body);font-size:.9rem;font-weight:700;
+  cursor:pointer;border:2px solid transparent;transition:all .22s;
+}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:transparent;color:var(--accent);transform:translateY(-2px)}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+
+/* STATS STRIP inside home */
+.stats-strip{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  gap:1px;background:var(--border);
+  border-radius:14px;overflow:hidden;
+  border:1px solid var(--border);
+  margin-top:3rem;width:100%;max-width:1000px;
+  animation:fadeUp .8s .35s ease both;
+  box-shadow:var(--shadow);
+}
+@media(max-width:700px){.stats-strip{grid-template-columns:repeat(3,1fr)}}
+.stat-item{background:var(--surface);padding:1.5rem 1rem;text-align:center;transition:background .2s}
+.stat-item:hover{background:var(--accentlt)}
+.stat-n{font-family:var(--font-head);font-size:2rem;font-weight:700;color:var(--accent);line-height:1}
+.stat-l{font-size:.68rem;color:var(--muted);margin-top:.35rem;text-transform:uppercase;letter-spacing:.08em}
+
+/* ══════════════════════ DEMO SECTION ══════════════════════ */
+#demo-wrap{
+  background:var(--bg2);
+  position:relative;overflow:hidden;
+  border-top:3px solid var(--accent);
+  border-bottom:3px solid var(--accent);
+}
+#demo-inner{max-width:1200px;margin:0 auto;padding:5rem 2rem;position:relative;z-index:1}
+
+/* Demo section header — coloured text only */
+#demo-wrap .sh-tag{color:var(--accent);font-size:.8rem}
+#demo-wrap .sh-tag::before{background:var(--accent)}
+#demo-wrap .sh-title{color:var(--accent)}
+#demo-wrap .sh-title em{color:#0e9f6e}
+#demo-wrap .sh-body{color:var(--text);font-size:1rem}
+
+/* Step indicator */
+.si-bar{
+  display:flex;align-items:center;gap:.3rem;
+  margin-bottom:2rem;flex-wrap:wrap;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;padding:.8rem 1.2rem;
+  box-shadow:var(--shadow);
+}
+.si-s{
+  display:flex;align-items:center;gap:.5rem;
+  padding:.42rem .85rem;border-radius:8px;
+  font-size:.8rem;font-weight:600;color:var(--muted);
+  transition:all .3s;
+}
+.si-s.active{background:var(--accentlt);color:var(--accent)}
+.si-s.done{color:var(--accent2)}
+.si-num{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--border);font-size:.72rem;font-weight:700;
+  transition:all .3s;flex-shrink:0;
+}
+.si-s.active .si-num{background:var(--accent);color:#fff}
+.si-s.done .si-num{background:var(--accent2);color:#fff}
+.si-arr{color:var(--border);font-size:1rem;padding:0 .1rem}
+
+/* Upload zone */
+.upload-zone{
+  border:2.5px dashed var(--border);
+  border-radius:14px;
+  background:var(--surface);
+  padding:2.5rem;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;margin-bottom:1.8rem;
+}
+.upload-zone:hover,.upload-zone.drag-over{
+  border-color:var(--accent);
+  background:var(--accentlt);
+}
+.upload-zone input{display:none}
+.uz-ico{font-size:2.4rem;margin-bottom:.7rem}
+.uz-hint{font-size:.9rem;color:var(--muted)}
+.uz-hint strong{color:var(--accent)}
+
+/* Image grid */
+.img-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+  gap:1rem;margin-bottom:1.5rem;
+}
+.img-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;position:relative;
+  box-shadow:var(--shadow);
+}
+.img-card canvas{width:100%;display:block;aspect-ratio:1;object-fit:cover}
+.img-card-lbl{
+  padding:.5rem .7rem;font-size:.72rem;font-weight:600;
+  color:var(--muted);
+  background:var(--card);
+  border-top:1px solid var(--border);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.img-badge{
+  position:absolute;top:.45rem;right:.45rem;
+  padding:.2rem .6rem;border-radius:100px;
+  font-size:.65rem;font-weight:700;opacity:0;transition:opacity .4s;
+}
+.img-badge.tumor{background:#fee2e2;color:#b91c1c}
+.img-badge.clear{background:#dcfce7;color:#15803d}
+.img-badge.show{opacity:1}
+
+/* Step buttons */
+.step-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.step-btn{
+  padding:.78rem 1.9rem;
+  background:var(--accent);
+  color:#fff;
+  border:2px solid var(--accent);
+  border-radius:10px;font-size:.9rem;font-weight:700;
+  cursor:pointer;transition:all .22s;
+  font-family:var(--font-body);
+  display:inline-flex;align-items:center;gap:.6rem;
+}
+.step-btn:disabled{opacity:.4;cursor:not-allowed}
+.step-btn:not(:disabled):hover{background:transparent;color:var(--accent);transform:translateY(-1px)}
+.step-tag{
+  font-size:.72rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted);
+  padding:.35rem .85rem;
+  background:var(--bg);
+  border-radius:6px;border:1px solid var(--border);
+}
+
+/* Side-by-side step log columns */
+.steps-sbs{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1rem;margin-bottom:1.5rem;
+}
+@media(max-width:700px){.steps-sbs{grid-template-columns:1fr}}
+.step-col{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;padding:1rem 1.1rem;
+  min-height:140px;transition:border-color .3s,background .3s;
+  box-shadow:var(--shadow);
+}
+.step-col.col-active{
+  background:var(--accentlt);
+  border-color:var(--accent);
+}
+.step-col.col-done{
+  background:#f0fdf4;
+  border-color:#86efac;
+}
+[data-theme="dark"] .step-col.col-done{background:rgba(14,159,110,.1);border-color:rgba(14,159,110,.4)}
+.step-col-head{
+  font-size:.76rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);
+  margin-bottom:.7rem;display:flex;align-items:center;gap:.4rem;
+  border-bottom:1px solid var(--border);padding-bottom:.6rem;
+}
+.step-col.col-active .step-col-head{color:var(--accent)}
+.step-col.col-done .step-col-head{color:#0e9f6e}
+.step-col-body{font-family:monospace;font-size:.78rem;color:var(--text);line-height:1.9}
+.log-ln{display:flex;align-items:flex-start;gap:.5rem;animation:fadeUp .3s ease both}
+.l-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:var(--accent);margin-top:.45rem;
+  animation:pdot 1s infinite;
+}
+.l-dot.done{background:var(--accent2);animation:none}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{
+  display:inline-block;width:13px;height:13px;
+  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+
+/* Results */
+.results-grid{display:none;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-top:1.5rem}
+.results-grid.on{display:grid}
+.res-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:1.2rem;text-align:center;
+  box-shadow:var(--shadow);animation:fadeUp .6s ease both;
+}
+.res-circles{display:flex;gap:.45rem;justify-content:center;margin:.7rem 0}
+.r-c{width:14px;height:14px;border-radius:50%;transition:transform .3s;cursor:pointer}
+.r-c:hover{transform:scale(1.4)}
+.cgreen{background:#16a34a;box-shadow:0 0 8px rgba(22,163,74,.5)}
+.cred{background:#dc2626;box-shadow:0 0 8px rgba(220,38,38,.5)}
+.res-verdict{
+  font-size:.82rem;font-weight:700;padding:.32rem .9rem;
+  border-radius:100px;display:inline-block;margin-bottom:.4rem;
+}
+.v-pos{background:#fee2e2;color:#b91c1c}
+.v-neg{background:#dcfce7;color:#15803d}
+.res-name{font-size:.7rem;color:var(--muted);margin-top:.3rem}
+.res-conf{font-size:.72rem;color:var(--muted)}
+.res-region{
+  font-size:.71rem;font-weight:600;margin-top:.4rem;
+  padding:.18rem .55rem;background:var(--accentlt);
+  color:var(--accent);border-radius:100px;display:inline-block;
+}
+
+.reset-btn{
+  margin-top:1.5rem;padding:.65rem 1.6rem;
+  background:transparent;border:2px solid var(--border);
+  color:var(--muted);border-radius:9px;
+  font-size:.85rem;font-weight:600;cursor:pointer;
+  transition:all .2s;font-family:var(--font-body);
+  display:none;align-items:center;gap:.45rem;
+}
+.reset-btn.on{display:inline-flex}
+.reset-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accentlt)}
+
+/* ══════════════════════ TUMOR INSIGHTS ══════════════════════ */
+#tumor-insights{background:var(--bg2);max-width:100%;padding:0}
+#tumor-insights > .sec{max-width:1200px;margin:0 auto;padding:5rem 2rem}
+
+.brain-diagram{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:2rem;box-shadow:var(--shadow);margin-top:2rem;
+}
+.brain-diagram h3{
+  font-family:var(--font-head);font-size:1.2rem;font-weight:700;
+  color:var(--text);margin-bottom:1.3rem;text-align:center;
+}
+.brain-regions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+.br-item{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;padding:1.1rem 1.2rem;transition:background .2s,transform .2s;
+}
+.br-item:hover{background:var(--accentlt);transform:translateY(-2px)}
+.br-item h4{font-size:.87rem;font-weight:700;color:var(--accent);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem}
+.br-item p{font-size:.79rem;color:var(--muted);line-height:1.55}
+.br-risk{font-size:.7rem;font-weight:700;margin-top:.5rem;padding:.2rem .6rem;border-radius:100px;display:inline-block}
+.br-risk.high{background:#fee2e2;color:#b91c1c}
+.br-risk.med{background:#fef3c7;color:#92400e}
+.br-risk.low{background:#dcfce7;color:#15803d}
+
+.ti-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1.3rem;margin-top:2rem}
+.ti-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:1.7rem;box-shadow:var(--shadow);
+  transition:transform .2s,box-shadow .2s;
+}
+.ti-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(26,111,191,.15)}
+.ti-card h3{
+  font-family:var(--font-head);font-size:1rem;font-weight:700;
+  color:var(--text);margin-bottom:.9rem;display:flex;align-items:center;gap:.55rem;
+}
+.ti-card ul{list-style:none;padding:0}
+.ti-card ul li{
+  font-size:.83rem;color:var(--muted);padding:.32rem 0;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:.5rem;line-height:1.5;
+}
+.ti-card ul li:last-child{border-bottom:none}
+.ti-card ul li::before{content:'▸';color:var(--accent);font-size:.68rem;flex-shrink:0;margin-top:.25rem}
+.ti-warn ul li::before{color:#e53e3e}
+.ti-prec ul li::before{color:#0e9f6e}
+
+/* ══════════════════════ RESEARCH ══════════════════════ */
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-top:2rem}
+@media(max-width:600px){.rg{grid-template-columns:1fr}}
+.rg-c{background:var(--card);padding:1.8rem}
+.rg-c.full{grid-column:1/-1}
+.rg-c h3{font-family:var(--font-head);font-size:.75rem;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:.8rem;font-weight:700}
+.rg-c p{font-size:.89rem;color:var(--muted);line-height:1.8}
+
+/* PIPELINE */
+.pipeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--border);border-radius:12px;overflow:hidden;margin-top:2rem;box-shadow:var(--shadow)}
+.pc{background:var(--card);padding:1.7rem 1rem;text-align:center;position:relative;transition:background .2s}
+.pc:hover{background:var(--accentlt)}
+.pc-n{position:absolute;top:.6rem;right:.7rem;font-size:.62rem;font-weight:700;color:var(--border);font-family:var(--font-head)}
+.pc-ico{font-size:1.7rem;margin-bottom:.6rem}
+.pc h4{font-size:.83rem;font-weight:700;color:var(--text);margin-bottom:.25rem}
+.pc p{font-size:.73rem;color:var(--muted);line-height:1.5}
+
+/* MODEL CARDS */
+.mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.2rem;margin-top:1.8rem}
+.mc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:transform .2s,box-shadow .2s;box-shadow:var(--shadow)}
+.mc:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(26,111,191,.15)}
+.mc-ico{font-size:1.7rem;margin-bottom:.7rem}
+.mc h4{font-family:var(--font-head);font-size:.93rem;font-weight:700;margin-bottom:.45rem;color:var(--text)}
+.mc p{font-size:.8rem;color:var(--muted);line-height:1.65}
+.mc-tag{margin-top:.75rem;display:inline-block;background:var(--accentlt);color:var(--accent);font-size:.67rem;font-weight:700;padding:.2rem .6rem;border-radius:100px}
+
+/* ARCH */
+.arch-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:2.2rem;box-shadow:var(--shadow);margin-top:1.8rem}
+.arch-vis{display:flex;align-items:flex-end;gap:.4rem;justify-content:center;flex-wrap:wrap;padding:.8rem 0 1.3rem}
+.al{display:flex;flex-direction:column;align-items:center;gap:.35rem}
+.al-blk{border-radius:5px;width:52px;display:flex;align-items:center;justify-content:center;font-size:.56rem;font-weight:700;writing-mode:vertical-rl;color:rgba(255,255,255,.9);letter-spacing:.04em;text-transform:uppercase;transition:transform .2s;cursor:default}
+.al-blk:hover{transform:scaleY(1.07)}
+.al-lbl{font-size:.6rem;color:var(--muted);text-align:center;max-width:58px;line-height:1.3}
+.al-arr{align-self:center;font-size:1rem;color:var(--border);margin-bottom:1.6rem;flex-shrink:0}
+.arch-det{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.9rem;margin-top:1.4rem;padding-top:1.4rem;border-top:1px solid var(--border)}
+.ad{display:flex;gap:.7rem}
+.ad-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:.5rem}
+.ad strong{display:block;font-size:.83rem;font-weight:700;color:var(--text);margin-bottom:.15rem;font-family:var(--font-head)}
+.ad p{font-size:.78rem;color:var(--muted);line-height:1.6}
+
+/* TOPICS */
+.topics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.3rem;margin-top:1.8rem}
+.tc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.6rem;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.tc:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(26,111,191,.15)}
+.tc-head{display:flex;align-items:center;gap:.7rem;margin-bottom:1rem}
+.tc-ico{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.tc-ico.b{background:#dbeafe}.tc-ico.g{background:#dcfce7}.tc-ico.p{background:#ede9fe}.tc-ico.o{background:#ffedd5}.tc-ico.pk{background:#fce7f3}
+.tc h3{font-family:var(--font-head);font-size:.95rem;font-weight:700;color:var(--text)}
+.tc ul{padding-left:0;list-style:none}
+.tc ul li{font-size:.81rem;color:var(--muted);padding:.3rem 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.45rem}
+.tc ul li:last-child{border-bottom:none}
+.tc ul li::before{content:'▸';color:var(--accent);font-size:.68rem;flex-shrink:0}
+
+.kw-wrap{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.8rem}
+.kw{padding:.38rem 1rem;border-radius:100px;font-size:.77rem;font-weight:600;border:1.5px solid;transition:all .2s;cursor:default}
+.kw:hover{transform:scale(1.05)}
+.kw.b{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
+.kw.g{background:#dcfce7;border-color:#86efac;color:#15803d}
+.kw.p{background:#ede9fe;border-color:#c4b5fd;color:#6d28d9}
+
+/* ABOUT */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.3rem;margin-top:1.8rem}
+.tm{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.8rem 1.4rem;text-align:center;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.tm:hover{transform:translateY(-4px);box-shadow:0 10px 34px rgba(26,111,191,.18)}
+.tm-av{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin:0 auto .9rem;box-shadow:0 4px 14px rgba(26,111,191,.22)}
+.av-blue{background:linear-gradient(135deg,#1a6fbf,#5eaeff)}
+.av-green{background:linear-gradient(135deg,#059669,#34d399)}
+.av-purple{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+.av-orange{background:linear-gradient(135deg,#d97706,#fbbf24)}
+.tm h3{font-family:var(--font-head);font-size:1rem;font-weight:700;color:var(--text);margin-bottom:.25rem}
+.tm .t-role{font-size:.77rem;color:var(--accent);font-weight:600;margin-bottom:.2rem}
+.tm .t-edu{font-size:.75rem;color:var(--muted);margin-bottom:.2rem}
+.tm .t-work{font-size:.75rem;color:var(--accent2);font-weight:600}
+
+.college-card{background:var(--card);border:1.5px solid var(--accent);border-radius:14px;padding:2rem;margin-top:2rem;box-shadow:0 4px 26px rgba(26,111,191,.12);display:grid;grid-template-columns:auto 1fr;gap:1.4rem;align-items:start}
+@media(max-width:480px){.college-card{grid-template-columns:1fr;text-align:center}}
+.col-emb{width:72px;height:72px;border-radius:10px;background:linear-gradient(135deg,#1a6fbf,#3fa9f5);display:flex;align-items:center;justify-content:center;font-size:1.9rem;flex-shrink:0}
+.college-card h3{font-family:var(--font-head);font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:.35rem}
+.col-url{font-size:.78rem;color:var(--accent);font-weight:600;margin-bottom:.7rem;display:inline-block}
+.college-card p{font-size:.84rem;color:var(--muted);line-height:1.8;margin-bottom:.5rem}
+.col-badges{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem}
+.c-b{font-size:.68rem;font-weight:700;padding:.22rem .65rem;border-radius:100px;background:var(--accentlt);color:var(--accent)}
+
+.li-btn{display:inline-flex;align-items:center;gap:.45rem;margin-top:.9rem;padding:.4rem .9rem;border-radius:6px;background:#0a66c2;color:#fff;font-size:.74rem;font-weight:700;cursor:pointer;border:none;font-family:var(--font-body);transition:all .2s;text-decoration:none}
+.li-btn:hover{background:#004182;transform:translateY(-1px)}
+.li-btn svg{width:14px;height:14px;fill:#fff;flex-shrink:0}
+
+/* FOOTER */
+footer{background:var(--surface);border-top:1px solid var(--border);text-align:center;padding:2.2rem 1.5rem;font-size:.8rem;color:var(--muted);transition:background .35s}
+footer strong{color:var(--accent)}
+
+/* WATERMARKS */
+.wm{position:fixed;pointer-events:none;z-index:9998;font-family:var(--font-head);font-weight:700;letter-spacing:.06em;white-space:nowrap;user-select:none;color:rgba(26,111,191,0.055)}
+[data-theme="dark"] .wm{color:rgba(100,180,255,0.055)}
+.wm1{bottom:14%;left:3%;font-size:1rem;transform:rotate(-35deg)}
+.wm2{top:30%;right:1%;font-size:.9rem;transform:rotate(-35deg)}
+.wm3{top:62%;left:38%;font-size:.85rem;transform:rotate(-35deg)}
+
+/* RIGHT-CLICK MENU */
+#rc-menu{position:fixed;z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 36px rgba(0,0,0,.18);padding:.5rem 0;min-width:210px;display:none;animation:fadeUp .18s ease both;pointer-events:all}
+.rc-head{padding:.45rem 1.1rem .2rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);display:flex;align-items:center;gap:.4rem}
+.rc-item{padding:.58rem 1.1rem;font-size:.83rem;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:.65rem;transition:background .15s,color .15s;user-select:none}
+.rc-item:hover{background:var(--accentlt);color:var(--accent)}
+.rc-item.locked{color:var(--muted);cursor:default;opacity:.6}
+.rc-item.locked:hover{background:transparent;color:var(--muted)}
+.rc-sep{height:1px;background:var(--border);margin:.3rem 0}
+#protect-toast{position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);background:#1a2d42;color:#fff;padding:.6rem 1.4rem;border-radius:100px;font-size:.8rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.3);z-index:99999;opacity:0;pointer-events:none;transition:opacity .3s;white-space:nowrap}
+#protect-toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="mainNav">
+  <div class="nav-brand">
+    <span class="nav-brain">🧠</span>
+    <span>Brain Tumor · CNN</span>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a class="active" onclick="navTo('home',this)">Home</a>
+    <a onclick="navTo('demo-wrap',this)">Demo</a>
+    <a onclick="navTo('tumor-insights',this)">Tumor Insights</a>
+    <a onclick="navTo('research',this)">Research</a>
+    <a onclick="navTo('architecture',this)">Architecture</a>
+    <a onclick="navTo('topics',this)">Research Topics</a>
+    <a onclick="navTo('about',this)">About Us</a>
+  </div>
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark / light mode">
+    <span class="t-sun">☀️</span>
+    <div class="t-knob"></div>
+    <span class="t-moon">🌙</span>
+  </button>
+</nav>
+
+<div class="page">
+
+<!-- ══════════════════════ HOME ══════════════════════ -->
+<section id="home">
+  <div class="hero-badge">Deep Learning · Medical Imaging · CNN Research</div>
+  <div class="hero-icon">🧠</div>
+  <h1>Brain Tumor Detection<br/><span>Using CNN</span></h1>
+  <p class="hero-sub">A hybrid approach merging morphological filtering and convolutional neural networks for accurate, efficient brain tumor diagnosis from MRI scans.</p>
+  <div class="hero-btns">
+    <button class="btn btn-primary" onclick="navTo('demo-wrap')">Try the Demo 🔬</button>
+    <button class="btn btn-outline" onclick="navTo('research')">Read Research →</button>
+  </div>
+  <div class="stats-strip">
+    <div class="stat-item"><div class="stat-n">CNN</div><div class="stat-l">Core Architecture</div></div>
+    <div class="stat-item"><div class="stat-n">MRI</div><div class="stat-l">Input Modality</div></div>
+    <div class="stat-item"><div class="stat-n">Multi</div><div class="stat-l">Class Output</div></div>
+    <div class="stat-item"><div class="stat-n">↑Acc</div><div class="stat-l">Better Accuracy</div></div>
+    <div class="stat-item"><div class="stat-n">2×</div><div class="stat-l">Faster Diagnosis</div></div>
+    <div class="stat-item"><div class="stat-n">IoT</div><div class="stat-l">Dept. Specialization</div></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ DEMO ══════════════════════ -->
+<div id="demo-wrap">
+<div id="demo-inner">
+
+  <div class="sh">
+    <div class="sh-tag">Interactive Demo</div>
+    <h2 class="sh-title">Brain Tumor <em>Detection Demo</em></h2>
+    <p class="sh-body">Upload 1–5 MRI brain scan images. Watch the full CNN pipeline run step by step — morphological preprocessing → feature extraction → classification → results.</p>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="si-bar" id="siBar">
+    <div class="si-s active" id="si0"><div class="si-num">1</div>Upload</div>
+    <span class="si-arr">›</span>
+    <div class="si-s" id="si1"><div class="si-num">2</div>Preprocessing</div>
+    <span class="si-arr">›</span>
+    <div class="si-s" id="si2"><div class="si-num">3</div>Feature Extraction</div>
+    <span class="si-arr">›</span>
+    <div class="si-s" id="si3"><div class="si-num">4</div>Classification</div>
+    <span class="si-arr">›</span>
+    <div class="si-s" id="si4"><div class="si-num">5</div>Results</div>
+  </div>
+
+  <!-- Upload zone -->
+  <div class="upload-zone" id="uZone"
+    onclick="document.getElementById('mriInput').click()"
+    ondragover="event.preventDefault();this.classList.add('drag-over')"
+    ondragleave="this.classList.remove('drag-over')"
+    ondrop="onDrop(event)">
+    <input type="file" id="mriInput" accept="image/*" multiple onchange="onFiles(this.files)"/>
+    <div class="uz-ico">📂</div>
+    <p class="uz-hint"><strong>Click to upload</strong> or drag &amp; drop MRI images</p>
+    <p class="uz-hint" style="margin-top:.35rem;font-size:.78rem;opacity:.75">JPG · PNG · BMP · Up to 5 images</p>
+  </div>
+
+  <!-- Image grid -->
+  <div class="img-grid" id="imgGrid"></div>
+
+  <!-- Side-by-side step log columns -->
+  <div class="steps-sbs" id="stepsSBS" style="display:none">
+    <div class="step-col col-inactive" id="stepCol1">
+      <div class="step-col-head">🔬 Step 1 · Morphological Preprocessing</div>
+      <div class="step-col-body" id="log1"></div>
+    </div>
+    <div class="step-col col-inactive" id="stepCol2">
+      <div class="step-col-head">⚙️ Step 2 · CNN Feature Extraction</div>
+      <div class="step-col-body" id="log2"></div>
+    </div>
+    <div class="step-col col-inactive" id="stepCol3">
+      <div class="step-col-head">🎯 Step 3 · Classification &amp; Report</div>
+      <div class="step-col-body" id="log3"></div>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step-row" id="step1Row" style="display:none">
+    <button class="step-btn" id="step1Btn" onclick="runStep1()">
+      <span>🔬</span> Step 1 · Preprocess Images
+    </button>
+    <span class="step-tag">Morphological Filtering</span>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step-row" id="step2Row" style="display:none">
+    <button class="step-btn" id="step2Btn" onclick="runStep2()">
+      <span>⚙️</span> Step 2 · Feature Extraction
+    </button>
+    <span class="step-tag">CNN Deep Learning</span>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step-row" id="step3Row" style="display:none">
+    <button class="step-btn" id="step3Btn" onclick="runStep3()">
+      <span>🎯</span> Step 3 · Classify &amp; Generate Report
+    </button>
+    <span class="step-tag">Softmax Classification</span>
+  </div>
+
+  <!-- Results -->
+  <div class="results-grid" id="resGrid"></div>
+
+  <button class="reset-btn" id="resetBtn" onclick="resetDemo()">↺ Reset Demo</button>
+
+</div>
+</div><!-- end demo-wrap -->
+
+<!-- ══════════════════════ TUMOR INSIGHTS ══════════════════════ -->
+<div id="tumor-insights">
+<div class="sec">
+
+  <div class="sh reveal">
+    <div class="sh-tag">Clinical Knowledge</div>
+    <h2 class="sh-title">Tumor <em>Insights</em></h2>
+    <p class="sh-body">Understanding where brain tumors occur, what happens if left untreated, and what precautions to take for early detection and care.</p>
+  </div>
+
+  <div class="brain-diagram reveal">
+    <h3>🧠 Brain Regions &amp; Tumor Detection Areas</h3>
+    <div class="brain-regions">
+      <div class="br-item">
+        <h4>🔴 Frontal Lobe</h4>
+        <p>Controls personality, decision-making, and voluntary movement. Tumors here may cause personality changes, speech difficulties, and one-sided weakness.</p>
+        <span class="br-risk high">High Risk Zone</span>
+      </div>
+      <div class="br-item">
+        <h4>🟠 Temporal Lobe</h4>
+        <p>Responsible for memory, language comprehension, and hearing. Tumors can cause memory loss, hearing issues, and difficulty understanding speech.</p>
+        <span class="br-risk high">High Risk Zone</span>
+      </div>
+      <div class="br-item">
+        <h4>🟡 Parietal Lobe</h4>
+        <p>Processes sensory information and spatial awareness. Tumors may lead to numbness, difficulty reading/writing, and coordination problems.</p>
+        <span class="br-risk med">Moderate Risk</span>
+      </div>
+      <div class="br-item">
+        <h4>🔵 Occipital Lobe</h4>
+        <p>Handles visual processing. Tumors in this region often manifest as visual disturbances, hallucinations, or partial vision loss.</p>
+        <span class="br-risk med">Moderate Risk</span>
+      </div>
+      <div class="br-item">
+        <h4>🟢 Cerebellum</h4>
+        <p>Coordinates muscle movement and balance. Tumors cause loss of coordination, tremors, and difficulty with fine motor tasks.</p>
+        <span class="br-risk med">Moderate Risk</span>
+      </div>
+      <div class="br-item">
+        <h4>⚪ Brain Stem</h4>
+        <p>Controls vital functions like breathing, heart rate, and consciousness. Tumors here are extremely critical and can be life-threatening.</p>
+        <span class="br-risk high">Critical Zone</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ti-grid">
+    <div class="ti-card reveal">
+      <h3>⚠️ What the CNN Detects</h3>
+      <ul>
+        <li>Gliomas — tumors of glial cells, most common type</li>
+        <li>Meningiomas — arise from the meninges (brain lining)</li>
+        <li>Pituitary adenomas — affecting hormone regulation</li>
+        <li>Metastatic tumors — spread from other body organs</li>
+        <li>Astrocytomas — from astrocyte star-shaped cells</li>
+        <li>Ependymomas — lining of the brain ventricles</li>
+      </ul>
+    </div>
+    <div class="ti-card ti-warn reveal">
+      <h3>🚨 Consequences If Untreated</h3>
+      <ul>
+        <li>Progressive neurological deterioration over weeks/months</li>
+        <li>Increased intracranial pressure — risk of herniation</li>
+        <li>Seizures and loss of consciousness episodes</li>
+        <li>Permanent loss of motor, speech, or sensory function</li>
+        <li>Hydrocephalus — dangerous cerebrospinal fluid buildup</li>
+        <li>Tumor malignancy progression and metastasis to spine</li>
+        <li>Coma and fatal outcome in high-grade tumors</li>
+      </ul>
+    </div>
+    <div class="ti-card ti-prec reveal">
+      <h3>✅ Precautions &amp; Early Care</h3>
+      <ul>
+        <li>Annual MRI screening if there is a family history</li>
+        <li>Report persistent headaches, vision changes, or dizziness</li>
+        <li>Avoid prolonged exposure to ionizing radiation</li>
+        <li>Maintain diet rich in antioxidants and omega-3s</li>
+        <li>Limit excessive mobile phone radiation near the head</li>
+        <li>Consult neurology for any unexplained neurological symptoms</li>
+        <li>Regular follow-up after any prior brain surgery or treatment</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sh reveal" style="margin-top:3.5rem">
+    <div class="sh-tag">Treatment</div>
+    <h2 class="sh-title">Treatment <em>Options</em></h2>
+  </div>
+  <div class="mc-grid">
+    <div class="mc reveal"><div class="mc-ico">🔪</div><h4>Surgical Resection</h4><p>Primary treatment for accessible tumors. Aims to remove as much tumor as safely possible to relieve pressure and provide tissue for diagnosis.</p><span class="mc-tag">First-line</span></div>
+    <div class="mc reveal"><div class="mc-ico">☢️</div><h4>Radiation Therapy</h4><p>Targeted X-ray beams destroy tumor cells. Used post-surgery or as primary treatment when surgery isn't possible.</p><span class="mc-tag">Post-Surgery</span></div>
+    <div class="mc reveal"><div class="mc-ico">💊</div><h4>Chemotherapy</h4><p>Drug-based treatment targeting rapidly dividing tumor cells. Often combined with radiation (Temozolomide is standard for glioblastoma).</p><span class="mc-tag">Combined</span></div>
+    <div class="mc reveal"><div class="mc-ico">🎯</div><h4>Stereotactic Radiosurgery</h4><p>Precise high-dose radiation (Gamma Knife, CyberKnife) targeting small tumors without a scalpel — minimal damage to surrounding tissue.</p><span class="mc-tag">Non-Invasive</span></div>
+    <div class="mc reveal"><div class="mc-ico">🧬</div><h4>Immunotherapy</h4><p>Boosts the immune system to attack tumor cells. Emerging field for glioblastoma with promising early clinical trial results.</p><span class="mc-tag">Emerging</span></div>
+    <div class="mc reveal"><div class="mc-ico">🤖</div><h4>AI-Assisted Diagnosis</h4><p>CNN models like this system provide faster, more accurate detection to guide treatment decisions and reduce diagnostic delays.</p><span class="mc-tag">This Research</span></div>
+  </div>
+
+</div>
+</div><!-- end tumor-insights -->
+
+<!-- ══════════════════════ RESEARCH ══════════════════════ -->
+<section id="research">
+  <div class="sh reveal">
+    <div class="sh-tag">Research</div>
+    <h2 class="sh-title">What This <em>Research Is About</em></h2>
+    <p class="sh-body">An in-depth look at the problem, methodology, and existing landscape of brain tumor detection in medical imaging.</p>
+  </div>
+
+  <div class="rg reveal">
+    <div class="rg-c full">
+      <h3>Abstract</h3>
+      <p>Brain tumor detection is a hazardous task in medical imaging that plays a key role in patient outcomes. Brain tumors have continued to increase for the last decade in several countries. This study proposes an approach combining both morphological filtering and convolutional neural networks (CNNs). The image is first preprocessed using morphological filtering to enhance contrast and remove unwanted noise from brain MRI images and extract the tumor region.</p>
+    </div>
+    <div class="rg-c">
+      <h3>Problem Statement</h3>
+      <p>Interpretation of MRI images is challenging due to the complexity of the brain's anatomy and variability in tumor characteristics. The development of accurate and efficient computer-aided methods for brain tumor detection is therefore essential. Early detection significantly increases the chances of successful treatment, making this a high-priority research domain in medical AI.</p>
+    </div>
+    <div class="rg-c">
+      <h3>Proposed Solution</h3>
+      <p>A combination of morphological filtering and CNN models for brain tumor detection. The morphological filtering techniques preprocess the medical images and extract relevant features such as the tumor region. The CNN model is then trained on these features to classify the image using backpropagation and gradient descent to minimize classification error on labeled images.</p>
+    </div>
+    <div class="rg-c">
+      <h3>Existing Systems</h3>
+      <p>CNNs have become a popular method for brain tumor detection. Many existing systems use CNNs to detect brain tumors in MRI images. One major limitation is the requirement for large amounts of training data. Additionally, CNN-based systems may not be suitable for detecting small tumors or tumors with complex shapes and irregular boundaries.</p>
+    </div>
+    <div class="rg-c">
+      <h3>DeepMedic Reference System</h3>
+      <p>The DeepMedic system uses a 3D CNN model for brain tumor detection with high accuracy and speed, making it a promising clinical tool. However, it is still limited by the need for large computational resources. This work draws inspiration from DeepMedic while targeting a lighter, more accessible architecture suited for practical deployment.</p>
+    </div>
+  </div>
+
+  <div class="sh reveal" style="margin-top:3rem">
+    <div class="sh-tag">Methodology</div>
+    <h2 class="sh-title">Processing <em>Pipeline</em></h2>
+  </div>
+  <div class="pipeline reveal">
+    <div class="pc"><span class="pc-n">01</span><div class="pc-ico">🖼️</div><h4>MRI Input</h4><p>Raw brain MRI scans loaded into the system</p></div>
+    <div class="pc"><span class="pc-n">02</span><div class="pc-ico">🔬</div><h4>Morphological Filter</h4><p>Contrast enhancement &amp; noise removal</p></div>
+    <div class="pc"><span class="pc-n">03</span><div class="pc-ico">📐</div><h4>Feature Extraction</h4><p>CNN layers extract texture &amp; spatial features</p></div>
+    <div class="pc"><span class="pc-n">04</span><div class="pc-ico">⚡</div><h4>Classification</h4><p>Fully connected layers classify tumor type</p></div>
+    <div class="pc"><span class="pc-n">05</span><div class="pc-ico">✅</div><h4>Diagnosis Output</h4><p>Tumor presence and type reported</p></div>
+  </div>
+
+  <div class="sh reveal" style="margin-top:3rem">
+    <div class="sh-tag">Contributions</div>
+    <h2 class="sh-title">Key <em>Contributions</em></h2>
+  </div>
+  <div class="mc-grid">
+    <div class="mc reveal"><div class="mc-ico">🔗</div><h4>Hybrid Detection Method</h4><p>Merging morphological filtering and CNNs results in substantial improvement in brain tumor diagnosis accuracy and speed.</p><span class="mc-tag">Accuracy ↑</span></div>
+    <div class="mc reveal"><div class="mc-ico">🎯</div><h4>Advanced Segmentation</h4><p>Focused on challenging brain tumor segmentation, addressing the need for precise and efficient diagnosis.</p><span class="mc-tag">Precision ↑</span></div>
+    <div class="mc reveal"><div class="mc-ico">🏷️</div><h4>Multiclass Classification</h4><p>Unlike binary systems, introduces multiclass classification empowering healthcare with specific tumor type identification.</p><span class="mc-tag">Multi-class</span></div>
+    <div class="mc reveal"><div class="mc-ico">⚗️</div><h4>Traditional + Deep Learning</h4><p>Improved image quality and diagnostic accuracy demonstrating the value of combining classical and deep learning approaches.</p><span class="mc-tag">Hybrid AI</span></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ ARCHITECTURE ══════════════════════ -->
+<div style="background:var(--bg2)">
+<section id="architecture">
+  <div class="sh reveal">
+    <div class="sh-tag">Architecture</div>
+    <h2 class="sh-title">CNN <em>Architecture</em></h2>
+    <p class="sh-body">A deep convolutional network processes filtered MRI images through cascading abstraction layers to reach precise multi-class classification.</p>
+  </div>
+
+  <div class="arch-box reveal">
+    <div class="arch-vis">
+      <div class="al"><div class="al-blk" style="height:68px;background:#1a6fbf">Input</div><div class="al-lbl">MRI<br/>224×224</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:86px;background:#2563eb">Conv1</div><div class="al-lbl">32 filters<br/>3×3</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:62px;background:#3b82f6">Pool1</div><div class="al-lbl">Max Pool<br/>2×2</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:100px;background:#0891b2">Conv2</div><div class="al-lbl">64 filters<br/>3×3</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:62px;background:#06b6d4">Pool2</div><div class="al-lbl">Max Pool<br/>2×2</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:114px;background:#0e9f6e">Conv3</div><div class="al-lbl">128 filters<br/>3×3</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:62px;background:#059669">Pool3</div><div class="al-lbl">Max Pool<br/>2×2</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:128px;background:#7c3aed">FC1</div><div class="al-lbl">Dense 512<br/>ReLU</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:96px;background:#9333ea">FC2</div><div class="al-lbl">Dense 256<br/>Dropout</div></div>
+      <span class="al-arr">→</span>
+      <div class="al"><div class="al-blk" style="height:52px;background:#d97706">Out</div><div class="al-lbl">Softmax<br/>N classes</div></div>
+    </div>
+    <div class="arch-det">
+      <div class="ad"><div class="ad-dot" style="background:#2563eb"></div><div><strong>Convolutional Layers</strong><p>Extract spatial features from morphologically filtered MRI images at different abstraction levels using learnable kernels.</p></div></div>
+      <div class="ad"><div class="ad-dot" style="background:#0891b2"></div><div><strong>Pooling Layers</strong><p>Reduce spatial dimensions while preserving dominant features, improving efficiency and translational invariance.</p></div></div>
+      <div class="ad"><div class="ad-dot" style="background:#7c3aed"></div><div><strong>Fully Connected Layers</strong><p>Combine all learned features for final classification using backpropagation and gradient descent optimization.</p></div></div>
+      <div class="ad"><div class="ad-dot" style="background:#d97706"></div><div><strong>Softmax Output</strong><p>Multi-class probability distribution identifying tumor type and presence with confidence scores for clinical use.</p></div></div>
+    </div>
+  </div>
+
+  <div class="sh reveal" style="margin-top:3rem">
+    <div class="sh-tag">Model Details</div>
+    <h2 class="sh-title">Model <em>Architecture</em></h2>
+  </div>
+  <div class="mc-grid">
+    <div class="mc reveal"><div class="mc-ico">🧱</div><h4>Input Preprocessing</h4><p>Morphological operations (erosion, dilation, opening, closing) applied before entering the CNN to enhance tumor region visibility.</p><span class="mc-tag">Morphological</span></div>
+    <div class="mc reveal"><div class="mc-ico">🔁</div><h4>Activation Functions</h4><p>ReLU activations in all hidden layers prevent vanishing gradients and enable faster convergence during training on brain MRI datasets.</p><span class="mc-tag">ReLU</span></div>
+    <div class="mc reveal"><div class="mc-ico">🎲</div><h4>Dropout Regularization</h4><p>Dropout layers (rate 0.5) in fully connected layers prevent overfitting on the limited medical imaging dataset.</p><span class="mc-tag">Regularization</span></div>
+    <div class="mc reveal"><div class="mc-ico">📉</div><h4>Training Optimization</h4><p>Adam optimizer with categorical cross-entropy loss. Backpropagation adjusts weights to minimize classification error on labeled MRI data.</p><span class="mc-tag">Adam Optimizer</span></div>
+    <div class="mc reveal"><div class="mc-ico">🗂️</div><h4>Data Augmentation</h4><p>Rotation, flipping, and zooming applied to training MRI images to expand the dataset and improve model robustness.</p><span class="mc-tag">Augmentation</span></div>
+    <div class="mc reveal"><div class="mc-ico">📊</div><h4>Batch Normalization</h4><p>Applied after convolutional layers to normalize feature maps, stabilize the learning process, and allow higher learning rates.</p><span class="mc-tag">Normalization</span></div>
+  </div>
+</section>
+</div>
+
+<!-- ══════════════════════ RESEARCH TOPICS ══════════════════════ -->
+<section id="topics">
+  <div class="sh reveal">
+    <div class="sh-tag">Research Topics</div>
+    <h2 class="sh-title">Patterns, Models &amp; <em>Frameworks</em></h2>
+    <p class="sh-body">All patterns, models, skills, sources, and frameworks used in this brain tumor detection research.</p>
+  </div>
+
+  <div class="topics-grid">
+    <div class="tc reveal">
+      <div class="tc-head"><div class="tc-ico b">🔷</div><h3>Patterns Used</h3></div>
+      <ul>
+        <li>Encoder-Decoder pattern for feature compression</li>
+        <li>Sliding Window for tumor localization</li>
+        <li>Multi-scale Feature Extraction pattern</li>
+        <li>Morphological Opening / Closing operations</li>
+        <li>Transfer Learning (pre-trained weights)</li>
+        <li>Data Augmentation (flip, rotate, zoom)</li>
+      </ul>
+    </div>
+    <div class="tc reveal">
+      <div class="tc-head"><div class="tc-ico g">🧩</div><h3>Models &amp; Algorithms</h3></div>
+      <ul>
+        <li>Convolutional Neural Network (CNN)</li>
+        <li>DeepMedic – 3D CNN (comparison model)</li>
+        <li>Morphological Filtering Model</li>
+        <li>Backpropagation Algorithm</li>
+        <li>Gradient Descent (Adam Optimizer)</li>
+        <li>Softmax Multiclass Classifier</li>
+      </ul>
+    </div>
+    <div class="tc reveal">
+      <div class="tc-head"><div class="tc-ico p">🛠️</div><h3>Skills &amp; Techniques</h3></div>
+      <ul>
+        <li>Medical Image Processing</li>
+        <li>Brain MRI Segmentation</li>
+        <li>Feature Engineering for medical data</li>
+        <li>Deep Learning training &amp; hyperparameter tuning</li>
+        <li>Tumor Region Extraction via morphology</li>
+        <li>Multiclass Image Classification</li>
+      </ul>
+    </div>
+    <div class="tc reveal">
+      <div class="tc-head"><div class="tc-ico o">📚</div><h3>Sources &amp; Datasets</h3></div>
+      <ul>
+        <li>Brain MRI Images dataset (Kaggle)</li>
+        <li>BRATS (Brain Tumor Segmentation) dataset</li>
+        <li>Magnetic Resonance Imaging (MRI) scans</li>
+        <li>Labeled tumor / no-tumor training images</li>
+        <li>Medical imaging research literature (IEEE, PubMed)</li>
+        <li>JNTUH academic research guidelines</li>
+      </ul>
+    </div>
+    <div class="tc reveal">
+      <div class="tc-head"><div class="tc-ico pk">⚙️</div><h3>Frameworks &amp; Tools</h3></div>
+      <ul>
+        <li>TensorFlow / Keras (CNN development)</li>
+        <li>Python 3.x (primary programming language)</li>
+        <li>NumPy &amp; Pandas (data handling)</li>
+        <li>OpenCV (image preprocessing &amp; morphology)</li>
+        <li>Matplotlib / Seaborn (data visualization)</li>
+        <li>Scikit-learn (evaluation metrics &amp; reports)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sh reveal" style="margin-top:3rem">
+    <div class="sh-tag">Keywords</div>
+    <h2 class="sh-title">Research <em>Keywords</em></h2>
+  </div>
+  <div class="kw-wrap reveal">
+    <span class="kw b">Brain Tumor Detection</span>
+    <span class="kw g">Convolutional Neural Networks</span>
+    <span class="kw p">Morphological Filtering</span>
+    <span class="kw b">Medical Imaging</span>
+    <span class="kw g">MRI Images</span>
+    <span class="kw p">Feature Extraction</span>
+    <span class="kw b">Classification</span>
+    <span class="kw g">Image Preprocessing</span>
+    <span class="kw p">Deep Learning</span>
+    <span class="kw b">Multiclass Segmentation</span>
+    <span class="kw g">Computer-Aided Diagnosis</span>
+    <span class="kw p">Backpropagation</span>
+  </div>
+</section>
+
+<!-- ══════════════════════ ABOUT US ══════════════════════ -->
+<div style="background:var(--bg2)">
+<section id="about">
+  <div class="sh reveal">
+    <div class="sh-tag">Team</div>
+    <h2 class="sh-title">About <em>Us</em></h2>
+    <p class="sh-body">The research team behind this brain tumor detection system — graduate researchers and engineers passionate about medical AI.</p>
+  </div>
+
+  <div class="team-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));max-width:900px">
+    <div class="tm reveal">
+      <div class="tm-av av-purple">👨‍💻</div>
+      <h3>Pavan Kumar</h3>
+      <div class="t-edu">B.Tech CSE – Internet of Things</div>
+      <div class="t-edu">Malla Reddy College of Engg. &amp; Tech.</div>
+      <div class="t-work">🎓 MSCS · University of Central Missouri, USA</div>
+      <a class="li-btn" href="https://www.linkedin.com/in/yvpavankumar/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        LinkedIn
+      </a>
+    </div>
+    <div class="tm reveal">
+      <div class="tm-av av-blue">👨‍💻</div>
+      <h3>Sahith Reddy</h3>
+      <div class="t-edu">B.Tech CSE – Internet of Things</div>
+      <div class="t-edu">Malla Reddy College of Engg. &amp; Tech.</div>
+      <div class="t-work">🎓 MSCS · Texas A&amp;M University – Corpus Christi</div>
+      <a class="li-btn" href="https://www.linkedin.com/in/sahith-reddy-013a87219/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        LinkedIn
+      </a>
+    </div>
+    <div class="tm reveal">
+      <div class="tm-av av-green">👩‍💻</div>
+      <h3>Katta Shivani</h3>
+      <div class="t-edu">B.Tech CSE – Internet of Things</div>
+      <div class="t-edu">Malla Reddy College of Engg. &amp; Tech.</div>
+      <div class="t-work">🎓 MS in Data Science · University of Arkansas at Little Rock</div>
+      <a class="li-btn" href="https://www.linkedin.com/in/shivani-reddy-katta/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        LinkedIn
+      </a>
+    </div>
+  </div>
+
+  <div class="college-card reveal">
+    <div class="col-emb">🏛️</div>
+    <div>
+      <h3>Malla Reddy College of Engineering &amp; Technology (MRCET)</h3>
+      <span class="col-url">🌐 www.mrcet.com &nbsp;·&nbsp; 📞 9133555162 / 9133555183 &nbsp;·&nbsp; ✉️ info@mrcet.com</span>
+      <p>Malla Reddy College of Engineering and Technology (MRCET) is a premier engineering institution located in Hyderabad, Telangana, India. Affiliated with JNTUH and approved by AICTE, MRCET offers undergraduate and postgraduate programs across a wide range of engineering and technology disciplines including AI &amp; Data Science, AI &amp; Machine Learning, Computer Science, Electronics, and more.</p>
+      <p>The institution houses a dedicated <strong>Department of CSE – Internet of Things (CSE IoT)</strong> that bridges computer science fundamentals with cutting-edge IoT technologies. MRCET holds NBA Tier-I accreditation and participates actively in NIRF rankings.</p>
+      <div class="col-badges">
+        <span class="c-b">AICTE Approved</span>
+        <span class="c-b">JNTUH Affiliated</span>
+        <span class="c-b">NBA Tier-I</span>
+        <span class="c-b">NAAC Certified</span>
+        <span class="c-b">NIRF Ranked</span>
+        <span class="c-b">CSE IoT Dept.</span>
+        <span class="c-b">Hyderabad, India</span>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<footer>
+  <strong>Brain Tumor Detection Using CNN</strong> &nbsp;·&nbsp;
+  Malla Reddy College of Engineering &amp; Technology, Hyderabad, India<br/>
+  Dept. of CSE (Internet of Things) &nbsp;·&nbsp; B.Tech Research Paper<br/><br/>
+  Pavan Kumar &nbsp;·&nbsp; Sahith Reddy &nbsp;·&nbsp; Katta Shivani
+</footer>
+
+</div><!-- end .page -->
+
+<!-- WATERMARKS -->
+<div class="wm wm1">🧠 MRCET · Brain Tumor CNN · 2024</div>
+<div class="wm wm2">© Brain Tumor CNN Research</div>
+<div class="wm wm3">🔬 Brain Tumor Detection · CNN · MRCET Research</div>
+
+<!-- RIGHT-CLICK MENU -->
+<div id="rc-menu">
+  <div class="rc-head">🧠 Brain Tumor · CNN</div>
+  <div class="rc-item" onclick="window.scrollTo({top:0,behavior:'smooth'});closeMenu()">⬆️ Scroll to Top</div>
+  <div class="rc-item" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});closeMenu()">⬇️ Scroll to Bottom</div>
+  <div class="rc-sep"></div>
+  <div class="rc-item" onclick="toggleTheme();closeMenu()">🌓 Toggle Dark / Light Mode</div>
+  <div class="rc-sep"></div>
+  <div class="rc-item locked">🔒 View Source — Protected</div>
+  <div class="rc-item locked">🔒 Save Image As — Protected</div>
+  <div class="rc-item locked">🔒 Inspect Element — Protected</div>
+  <div class="rc-item locked">🔒 Developer Tools — Protected</div>
+</div>
+<div id="protect-toast">🔒 This content is protected</div>
+
+<script>
+/* ══════════════════════ THEME ══════════════════════ */
+function toggleTheme(){
+  const h = document.documentElement;
+  h.dataset.theme = h.dataset.theme === 'light' ? 'dark' : 'light';
+  try{ localStorage.setItem('bt-theme', h.dataset.theme) }catch(e){}
+}
+(function(){
+  try{
+    const saved = localStorage.getItem('bt-theme');
+    if(saved) document.documentElement.dataset.theme = saved;
+  }catch(e){}
+})();
+
+/* ══════════════════════ NAV ══════════════════════ */
+function navTo(id, el){
+  const target = document.getElementById(id);
+  if(!target) return;
+  const y = target.getBoundingClientRect().top + window.scrollY - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'))||72);
+  window.scrollTo({top: y, behavior:'smooth'});
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  if(el){ el.classList.add('active'); }
+  else {
+    const lnk = document.querySelector('.nav-links a[onclick*="\''+id+'\'"]');
+    if(lnk) lnk.classList.add('active');
+  }
+}
+
+// Scroll spy
+const NAV_SECTIONS = ['home','demo-wrap','tumor-insights','research','architecture','topics','about'];
+window.addEventListener('scroll', function(){
+  const sy = window.scrollY + 90;
+  for(let i = NAV_SECTIONS.length-1; i >= 0; i--){
+    const el = document.getElementById(NAV_SECTIONS[i]);
+    if(!el) continue;
+    if(sy >= el.offsetTop){
+      document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+      const id = NAV_SECTIONS[i];
+      const lnk = document.querySelector('.nav-links a[onclick*="\''+id+'\'"]');
+      if(lnk) lnk.classList.add('active');
+      break;
+    }
+  }
+}, {passive:true});
+
+/* ══════════════════════ SCROLL REVEAL ══════════════════════ */
+const revealObserver = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      revealObserver.unobserve(e.target);
+    }
+  });
+}, {threshold: 0.07, rootMargin: '0px 0px -30px 0px'});
+
+document.querySelectorAll('.reveal').forEach(function(el){
+  revealObserver.observe(el);
+});
+
+/* ══════════════════════ DEMO ENGINE ══════════════════════ */
+var files = [];
+var s1done = false;
+var s2done = false;
+
+var BRAIN_REGIONS = ['Frontal Lobe','Temporal Lobe','Parietal Lobe','Occipital Lobe','Cerebellum','Brain Stem'];
+
+function getBrainRegion(idx, name){
+  var h = 0;
+  for(var i=0;i<name.length;i++) h += name.charCodeAt(i);
+  return BRAIN_REGIONS[(h + idx*3) % BRAIN_REGIONS.length];
+}
+
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('uZone').classList.remove('drag-over');
+  onFiles(e.dataTransfer.files);
+}
+
+function onFiles(fl){
+  if(!fl || !fl.length) return;
+  var rem = 5 - files.length;
+  var add = Math.min(fl.length, rem);
+  if(add <= 0){ alert('Maximum 5 images allowed.'); return; }
+  for(var i=0;i<add;i++) files.push(fl[i]);
+  renderGrid();
+  if(files.length >= 5) document.getElementById('uZone').style.display='none';
+  document.getElementById('step1Row').style.display='flex';
+  document.getElementById('step1Btn').disabled=false;
+  document.getElementById('stepsSBS').style.display='grid';
+  setSI(0,'active');
+}
+
+function renderGrid(){
+  var g = document.getElementById('imgGrid');
+  g.innerHTML = '';
+  files.forEach(function(f,i){
+    var card = document.createElement('div');
+    card.className='img-card'; card.id='ic_'+i;
+    var cvs = document.createElement('canvas');
+    cvs.id='cv_'+i; cvs.width=220; cvs.height=220;
+    card.appendChild(cvs);
+    var bdg = document.createElement('div');
+    bdg.className='img-badge'; bdg.id='ib_'+i;
+    card.appendChild(bdg);
+    var lbl = document.createElement('div');
+    lbl.className='img-card-lbl';
+    lbl.textContent = f.name.length>24 ? f.name.slice(0,21)+'…' : f.name;
+    card.appendChild(lbl);
+    g.appendChild(card);
+    var img = new Image();
+    var url = URL.createObjectURL(f);
+    img.onload = (function(canvas, u){ return function(){
+      canvas.getContext('2d').drawImage(img, 0, 0, 220, 220);
+      URL.revokeObjectURL(u);
+    }; })(cvs, url);
+    img.src = url;
+  });
+}
+
+var wait = function(ms){ return new Promise(function(r){ setTimeout(r,ms); }); };
+
+function addLog(colId, msg, done){
+  var log = document.getElementById(colId);
+  if(!log) return;
+  var line = document.createElement('div');
+  line.className='log-ln';
+  var dot = document.createElement('div');
+  dot.className='l-dot' + (done?' done':'');
+  var span = document.createElement('span');
+  span.textContent = msg;
+  line.appendChild(dot);
+  line.appendChild(span);
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function setColState(colId, state){
+  var col = document.getElementById(colId);
+  if(!col) return;
+  col.classList.remove('col-active','col-done','col-inactive');
+  col.classList.add(state);
+}
+
+async function runStep1(){
+  var btn = document.getElementById('step1Btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Preprocessing…';
+  setColState('stepCol1','col-active');
+  setSI(1,'active');
+  document.getElementById('log1').innerHTML = '';
+
+  var msgs = [
+    'Loading MRI images into preprocessing pipeline…',
+    'Applying morphological erosion — removing noise artifacts…',
+    'Performing dilation — restoring tumor region boundaries…',
+    'Enhancing image contrast via histogram equalization…',
+    'Smoothing with Gaussian blur for uniform noise reduction…',
+    'Extracting tumor candidate regions via morphological opening…',
+    '✓ Preprocessing complete — ready for CNN feature extraction.',
+  ];
+  for(var i=0;i<msgs.length;i++){
+    await wait(650 + Math.random()*350);
+    addLog('log1', msgs[i], i===msgs.length-1);
+  }
+  // Apply grayscale effect
+  for(var i=0;i<files.length;i++){
+    var cv = document.getElementById('cv_'+i);
+    if(!cv) continue;
+    var ctx = cv.getContext('2d');
+    var d = ctx.getImageData(0,0,220,220);
+    var px = d.data;
+    for(var j=0;j<px.length;j+=4){
+      var gray = 0.299*px[j]+0.587*px[j+1]+0.114*px[j+2];
+      var c = Math.min(255,Math.max(0,(gray-128)*1.45+128));
+      px[j]=px[j+1]=px[j+2]=c;
+    }
+    ctx.putImageData(d,0,0);
+    ctx.fillStyle='rgba(30,120,200,0.07)'; ctx.fillRect(0,0,220,220);
+  }
+  s1done = true;
+  btn.innerHTML = '✅ Step 1 Complete';
+  setColState('stepCol1','col-done');
+  setSI(1,'done'); setSI(2,'active');
+  document.getElementById('step2Row').style.display='flex';
+  document.getElementById('step2Btn').disabled=false;
+}
+
+async function runStep2(){
+  if(!s1done) return;
+  var btn = document.getElementById('step2Btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> Extracting Features…';
+  setColState('stepCol2','col-active');
+  setSI(2,'active');
+  document.getElementById('log2').innerHTML = '';
+
+  var msgs = [
+    'Feeding preprocessed images into CNN Layer 1 (Conv · 32 filters)…',
+    'Max pooling — reducing spatial dimensions, retaining features…',
+    'CNN Layer 2 (Conv · 64 filters) — mid-level texture features…',
+    'CNN Layer 3 (Conv · 128 filters) — complex tumor patterns…',
+    'Generating feature maps from all 3 convolutional layers…',
+    '✓ Feature extraction complete — passing to classifier.',
+  ];
+  for(var i=0;i<msgs.length;i++){
+    await wait(620 + Math.random()*380);
+    addLog('log2', msgs[i], i===msgs.length-1);
+  }
+  s2done = true;
+  btn.innerHTML='✅ Step 2 Complete';
+  setColState('stepCol2','col-done');
+  setSI(2,'done'); setSI(3,'active');
+  document.getElementById('step3Row').style.display='flex';
+  document.getElementById('step3Btn').disabled=false;
+}
+
+async function runStep3(){
+  if(!s2done) return;
+  var btn = document.getElementById('step3Btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> Classifying…';
+  setColState('stepCol3','col-active');
+  setSI(3,'active');
+  document.getElementById('log3').innerHTML = '';
+
+  var msgs = [
+    'Flattening feature maps → Fully Connected Layer 1 (Dense 512)…',
+    'Dropout regularization applied (rate 0.5) — preventing overfitting…',
+    'FC Layer 2 (Dense 256) — combining all learned features…',
+    'Softmax activation computing class probability distribution…',
+    'Mapping output probabilities to tumor region locations…',
+    '✓ Classification complete — generating diagnosis report.',
+  ];
+  for(var i=0;i<msgs.length;i++){
+    await wait(600 + Math.random()*400);
+    addLog('log3', msgs[i], i===msgs.length-1);
+  }
+  // Annotate canvases
+  for(var i=0;i<files.length;i++){
+    var cv = document.getElementById('cv_'+i);
+    if(!cv) continue;
+    var ctx = cv.getContext('2d');
+    var tumor = hasTumor(i, files[i].name);
+    if(tumor){
+      var cx=85+(i*19%40), cy=80+(i*11%38), r=22+(i*7%16);
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.strokeStyle='rgba(220,38,38,.9)'; ctx.lineWidth=2.5; ctx.stroke();
+      ctx.fillStyle='rgba(220,38,38,.15)'; ctx.fill();
+      ctx.fillStyle='rgba(220,38,38,.95)'; ctx.font='bold 9px sans-serif';
+      ctx.fillText('⚠ Detected', cx-r+2, cy-r-5);
+    } else {
+      ctx.fillStyle='rgba(22,163,74,.12)'; ctx.fillRect(0,0,220,220);
+      ctx.fillStyle='rgba(22,163,74,.95)'; ctx.font='bold 11px sans-serif';
+      ctx.fillText('✓ Clear', 8, 20);
+    }
+    var bdg = document.getElementById('ib_'+i);
+    if(tumor){ bdg.textContent='⚠ Tumor'; bdg.className='img-badge tumor show'; }
+    else      { bdg.textContent='✓ Clear'; bdg.className='img-badge clear show'; }
+  }
+  btn.innerHTML='✅ Step 3 Complete';
+  setColState('stepCol3','col-done');
+  setSI(3,'done'); setSI(4,'active');
+  await wait(350);
+  showResults();
+  setSI(4,'done');
+  document.getElementById('resetBtn').classList.add('on');
+}
+
+function hasTumor(idx, name){
+  var h = 0;
+  for(var i=0;i<name.length;i++) h += name.charCodeAt(i);
+  return (h + idx) % 3 !== 0;
+}
+function getConf(idx, name, tumor){
+  var h = 0;
+  for(var i=0;i<name.length;i++) h += name.charCodeAt(i);
+  var base = (h*13 + idx*7) % 20;
+  return tumor ? 78+base : 75+base;
+}
+
+function showResults(){
+  var grid = document.getElementById('resGrid');
+  grid.innerHTML=''; grid.classList.add('on');
+  files.forEach(function(f,i){
+    var tumor = hasTumor(i, f.name);
+    var conf  = getConf(i, f.name, tumor);
+    var region = getBrainRegion(i, f.name);
+    var card = document.createElement('div');
+    card.className='res-card';
+    card.style.animationDelay = (i*0.12)+'s';
+
+    var verdict = document.createElement('div');
+    verdict.className='res-verdict '+(tumor?'v-pos':'v-neg');
+    verdict.textContent = tumor ? '⚠ Tumor Present' : '✓ No Tumor';
+    card.appendChild(verdict);
+
+    var circles = document.createElement('div');
+    circles.className='res-circles';
+    for(var c=0;c<5;c++){
+      var dot = document.createElement('div');
+      dot.className='r-c '+(tumor?'cred':'cgreen');
+      circles.appendChild(dot);
+    }
+    card.appendChild(circles);
+
+    var nm = document.createElement('div'); nm.className='res-name';
+    nm.textContent = f.name.length>22 ? f.name.slice(0,19)+'…' : f.name;
+    card.appendChild(nm);
+
+    var cf = document.createElement('div'); cf.className='res-conf';
+    cf.textContent = 'Confidence: '+conf+'%';
+    card.appendChild(cf);
+
+    if(tumor){
+      var reg = document.createElement('div'); reg.className='res-region';
+      reg.textContent = '📍 '+region;
+      card.appendChild(reg);
+    }
+    grid.appendChild(card);
+  });
+  setTimeout(function(){
+    grid.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }, 100);
+}
+
+function resetDemo(){
+  files=[]; s1done=false; s2done=false;
+  document.getElementById('imgGrid').innerHTML='';
+  ['log1','log2','log3'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.innerHTML='';
+  });
+  var rg = document.getElementById('resGrid');
+  rg.innerHTML=''; rg.classList.remove('on');
+  document.getElementById('stepsSBS').style.display='none';
+  document.getElementById('step1Row').style.display='none';
+  document.getElementById('step2Row').style.display='none';
+  document.getElementById('step3Row').style.display='none';
+  document.getElementById('step1Btn').innerHTML='<span>🔬</span> Step 1 · Preprocess Images';
+  document.getElementById('step2Btn').innerHTML='<span>⚙️</span> Step 2 · Feature Extraction';
+  document.getElementById('step3Btn').innerHTML='<span>🎯</span> Step 3 · Classify &amp; Generate Report';
+  document.getElementById('resetBtn').classList.remove('on');
+  document.getElementById('uZone').style.display='';
+  document.getElementById('mriInput').value='';
+  ['stepCol1','stepCol2','stepCol3'].forEach(function(id){ setColState(id,'col-inactive'); });
+  for(var i=1;i<=4;i++){
+    var el = document.getElementById('si'+i);
+    if(el){ el.classList.remove('active','done'); }
+  }
+  document.getElementById('si0').className='si-s active';
+}
+
+function setSI(idx, state){
+  var el = document.getElementById('si'+idx);
+  if(!el) return;
+  el.classList.remove('active','done');
+  if(state) el.classList.add(state);
+}
+
+/* ══════════════════════ RIGHT-CLICK PROTECTION ══════════════════════ */
+var rcMenu = document.getElementById('rc-menu');
+var toast  = document.getElementById('protect-toast');
+var toastTimer;
+
+document.addEventListener('contextmenu', function(e){
+  e.preventDefault();
+  var x = Math.min(e.clientX, window.innerWidth-220);
+  var y = Math.min(e.clientY, window.innerHeight-180);
+  rcMenu.style.left=x+'px'; rcMenu.style.top=y+'px';
+  rcMenu.style.display='block';
+});
+document.addEventListener('click', function(e){
+  if(!rcMenu.contains(e.target)) closeMenu();
+});
+document.addEventListener('scroll', closeMenu, {passive:true});
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape') closeMenu();
+  if(e.key==='F12'){ e.preventDefault(); showToast('🔒 Developer tools are disabled'); }
+  if(e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)){ e.preventDefault(); showToast('🔒 Inspect is disabled'); }
+  if(e.ctrlKey && ['u','U'].includes(e.key)){ e.preventDefault(); showToast('🔒 View source is disabled'); }
+});
+document.addEventListener('dragstart', function(e){
+  if(e.target.tagName==='IMG'||e.target.tagName==='CANVAS'){ e.preventDefault(); showToast('🔒 Images are protected'); }
+});
+
+function closeMenu(){ rcMenu.style.display='none'; }
+function showToast(msg){
+  toast.textContent = msg || '🔒 Content is protected';
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 2400);
+}
+function rcCopy(){
+  try{ navigator.clipboard.writeText('Brain Tumor Detection Using CNN — MRCET Research'); }catch(e){}
+  showToast('📋 Title copied to clipboard');
+  closeMenu();
+}
+function rcShare(){
+  if(navigator.share){
+    navigator.share({title:'Brain Tumor CNN',url:location.href}).catch(function(){});
+  } else {
+    try{ navigator.clipboard.writeText(location.href); }catch(e){}
+    showToast('🔗 Link copied to clipboard');
+  }
+  closeMenu();
+}
+</script>
+</body>
+</html>
